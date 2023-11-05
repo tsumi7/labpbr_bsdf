@@ -1,3 +1,11 @@
+#define EPSILON  (1e-6)
+
+float ior(float f0)
+{
+    float sqrt_f0 = sqrt(max(f0, 0.02));
+    return (1.0 + sqrt_f0) / max(1.0 - sqrt_f0, EPSILON);
+}
+
 color f0(color n, color k)
 {
     color k2 = max(k * k, color(1e-6));
@@ -36,6 +44,7 @@ shader labpbr_to_principled_bsdf(
     output float outMetallic = 0.0,
     output float outSpecular = 0.0,
     output float outRoughness = 0.0,
+    output float outIoR = 1.450,
     output color outEmission = 0.0,
     output float outEmissionStrength = 0.0,
     output float outAlpha = 0.0,
@@ -60,6 +69,7 @@ shader labpbr_to_principled_bsdf(
         albedo = inAlbedo * inNormal.b;
         // Reflectivity
         outSpecular = inSpecular.g;
+        outIoR = ior(inSpecular.g);
         metallic = 0.0;
     } else if (is_metal > 254) {
         // Albedo is F0
