@@ -95,7 +95,7 @@ shader labpbr_to_principled_bsdf(
             n = color(0.15943, 0.14512, 0.13547); k = color(3.9291, 3.1900, 2.3808); }
 
         F0 = f0(n, k);
-        albedo = mix(F0, inAlbedo, inMetalMixFactor);
+        albedo = mix(inAlbedo, F0, inMetalMixFactor);
         metallic = 1.0;
     }
 
