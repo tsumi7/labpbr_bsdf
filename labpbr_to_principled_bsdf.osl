@@ -13,7 +13,7 @@ color f0(color n, color k)
     return sqrt(r);
 }
 
-normal reconstruct_normal(float x, float y)
+color reconstruct_normal(float x, float y)
 {
     float f = 0.0;
     vector t = vector(x, y, 0.0);
@@ -25,41 +25,37 @@ normal reconstruct_normal(float x, float y)
 
     f = sqrt(1.0 - dot(t, t));
 
-    return normalize(vector(x, 1 - y, (f / 2) + 0.5));
+    return vector(x, 1 - y, (f / 2) + 0.5);
 }
 
 shader labpbr_to_principled_bsdf(
-    color inAlbedo = color(0.0),
-    float inAlbedo_a = 0.0,
-    color inNormal = color(0.0),
-    float inNormal_a = 0.0,
-    color inSpecular = color(0.0),
-    float inSpecular_a = 0.0,
-    int inCustomMetalIndex = 0,
-    color inCustomMetalN = color(1.0, 0.0, 0.0), // Signal out of bounds indexed metals
-    color inCustomMetalK = color(2.0, 1.0, 0.5),
-    output color outAlbedo = 0.0,
-    output float outSSS = 0.0,
-    output color outSSC = 0.0,
-    output float outMetallic = 0.0,
-    output float outSpecular = 0.0,
-    output float outRoughness = 0.0,
-    output float outIoR = 1.450,
-    output color outEmission = 0.0,
-    output float outEmissionStrength = 0.0,
-    output float outAlpha = 0.0,
-    output normal outNormal = 0,
-    output float outHeightmap = 0.0,
+    color inAlbedo = color(0.0) [[ string label = "Albedo Texture" ]],
+    float inAlbedo_a = 0.0 [[ string label = "Albedo Texture Alpha" ]],
+    color inNormal = color(0.0) [[ string label = "Normal Texture" ]],
+    float inNormal_a = 0.0 [[ string label = "Normal Texture Alpha"]],
+    color inSpecular = color(0.0) [[ string label = "Specular Texture" ]],
+    float inSpecular_a = 0.0 [[ string label = "Specular Texture Alpha" ]],
+    float inMetalMixFactor = 0.5 [[ string label = "HCM Mix Factor", string help = "Controls the Mix factor for Hardcoded Metals between F0 and Albedo", string widget = "slider", float min = 0.0, float max = 1.0 ]],
+    output color outAlbedo = 0.0 [[ string label = "Base Color" ]],
+    output float outSSS = 0.0 [[ string label = "Subsurface" ]],
+    output color outSSC = 0.0 [[ string label = "Subsurface Color" ]],
+    output float outMetallic = 0.0 [[ string label = "Metallic" ]],
+    output float outSpecular = 0.0 [[ string label = "Specular" ]],
+    output float outRoughness = 0.0 [[ string label = "Roughness" ]],
+    output float outIoR = 1.450 [[ string label = "IOR"]],
+    output color outEmission = 0.0 [[ string label = "Emission" ]],
+    output float outEmissionStrength = 0.0 [[ string label = "Emission Strength"]],
+    output float outAlpha = 0.0 [[ string label = "Alpha" ]],
+    output color outNormal = 0.0 [[ string label = "Normal" ]],
+    output float outHeightmap = 0.0 [[ string label = "Heightmap" ]],
 )
 {
     color albedo = color(0.0);
     color F0 = color(0.0);
     float metallic = 1.0;
     int is_metal = (int)(255 * inSpecular.g);
-    // Test custom metals across the entire surface
-    if (inCustomMetalIndex > 229) {
-        is_metal = inCustomMetalIndex;
-    }
+
+    // is_metal = 254;
 
     if (is_metal < 230) {
         float sss_offset = 65.0 / 255.0;
@@ -76,8 +72,10 @@ shader labpbr_to_principled_bsdf(
         albedo = inAlbedo;
         metallic = 1.0;
     } else {
-        color n = inCustomMetalN, k = inCustomMetalK;
-        // xd
+        // Signal out of bounds indexed metals, or place your custom N, K values here & uncomment is_metal = 254 above.
+        color n = color(1.0, 0.0, 0.0); 
+        color k = color(2.0, 1.0, 0.5);
+
         if (is_metal == 230) {      // Iron
             n = color(2.9114, 2.9497, 2.5845);    k = color(3.0893, 2.9318, 2.7670); }
         else if (is_metal == 231) { // Gold
@@ -97,7 +95,7 @@ shader labpbr_to_principled_bsdf(
 
         F0 = f0(n, k);
         // Mix factor pulled out of thin air
-        albedo = mix(inAlbedo, F0, 0.5);
+        albedo = mix(F0, inAlbedo, 0.5);
         metallic = 1.0;
     }
 
@@ -107,7 +105,7 @@ shader labpbr_to_principled_bsdf(
     outRoughness = pow(1.0 - inSpecular.r, 2.0);
 
     outEmission = inAlbedo;
-    outEmissionStrength = inSpecular_a < 255 ? inSpecular_a : 0.0;
+    outEmissionStrength = inSpecular_a < 1.0 ? inSpecular_a : 0.0;
 
     outAlpha = inAlbedo_a;
     outNormal = reconstruct_normal(inNormal.r, inNormal.g);
