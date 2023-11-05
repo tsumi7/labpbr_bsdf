@@ -1,3 +1,10 @@
+color f0(color n, color k)
+{
+    color k2 = max(k * k, color(1e-6));
+    color r = ((n - 1) * (n - 1) + k2) / ((n + 1) * (n + 1) + k2);
+    return sqrt(r);
+}
+
 normal reconstruct_normal(float x, float y)
 {
     float f = 0.0;
@@ -23,22 +30,23 @@ shader labpbr_to_principled_bsdf(
     int inCustomMetalIndex = 0,
     color inCustomMetalN = color(1.0, 0.0, 0.0), // Signal out of bounds indexed metals
     color inCustomMetalK = color(2.0, 1.0, 0.5),
-    output color outAlbedo = 0,
-    output float outSSS = 0,
-    output float outSSC = 0,
-    output float outMetallic = 0,
-    output float outSpecular = 0,
-    output float outRoughness = 0,
-    output float outEmission = 0,
+    output color outAlbedo = 0.0,
+    output float outSSS = 0.0,
+    output color outSSC = 0.0,
+    output float outMetallic = 0.0,
+    output float outSpecular = 0.0,
+    output float outRoughness = 0.0,
+    output color outEmission = 0.0,
+    output float outEmissionStrength = 0.0,
     output float outAlpha = 0.0,
     output normal outNormal = 0,
-    output float outHeightmap = 0,
+    output float outHeightmap = 0.0,
 )
 {
     color albedo = color(0.0);
     color F0 = color(0.0);
     float metallic = 1.0;
-    int is_metal = 255 * inSpecular.g;
+    int is_metal = (int)(255 * inSpecular.g);
     // Test custom metals across the entire surface
     if (inCustomMetalIndex > 229) {
         is_metal = inCustomMetalIndex;
@@ -84,13 +92,14 @@ shader labpbr_to_principled_bsdf(
     }
 
     outAlbedo = albedo;
-    outAlpha = inAlbedo_a;
-    outEmission = inSpecular_a < 255 ? inSpecular_a : 0.0;
-
     outMetallic = metallic;
     // Roughness (convert from perceptual smoothness)
     outRoughness = pow(1.0 - inSpecular.r, 2.0);
 
+    outEmission = inAlbedo;
+    outEmissionStrength = inSpecular_a < 255 ? inSpecular_a : 0.0;
+
+    outAlpha = inAlbedo_a;
     outNormal = reconstruct_normal(inNormal.r, inNormal.g);
     outHeightmap = inNormal_a;
 }
