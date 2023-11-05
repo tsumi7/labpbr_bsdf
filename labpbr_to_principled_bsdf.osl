@@ -3,7 +3,7 @@ normal reconstruct_normal(float x, float y)
     float f = 0.0;
     vector t = vector(x, y, 0.0);
 
-    // bring to -1,1 range
+    // Bring to [-1, 1] range
     t -= 0.5;
     t *= 2;
     t.z = 0;
@@ -21,10 +21,11 @@ shader labpbr_to_principled_bsdf(
     color inSpecular = color(0.0),
     float inSpecular_a = 0.0,
     int inCustomMetalIndex = 0,
-    color inCustomMetalN = color(1.0, 0.0, 0.0), // signal out of bounds indexed metals
+    color inCustomMetalN = color(1.0, 0.0, 0.0), // Signal out of bounds indexed metals
     color inCustomMetalK = color(2.0, 1.0, 0.5),
     output color outAlbedo = 0,
     output float outSSS = 0,
+    output float outSSC = 0,
     output float outMetallic = 0,
     output float outSpecular = 0,
     output float outRoughness = 0,
@@ -35,70 +36,61 @@ shader labpbr_to_principled_bsdf(
 )
 {
     color albedo = color(0.0);
-
-    //////////////////////////////////////// Specular
-
-    // Emission
-    float emiss = inSpecular_a < 255 ? inSpecular_a : 0.0;
-
-    // F0 (used for calculating metallic reflections)
     color F0 = color(0.0);
-
-    // Metallic flag based on F0
-    float metallic = 0.5;
+    float metallic = 1.0;
     int is_metal = 255 * inSpecular.g;
+    // Test custom metals across the entire surface
     if (inCustomMetalIndex > 229) {
         is_metal = inCustomMetalIndex;
     }
 
     if (is_metal < 230) {
-        float ao = inNormal.b;
-        float offset = 65.0 / 255.0;
-        outSSS = inSpecular.b < offset ? 0.0 : inSpecular.b - offset;
-        albedo = inAlbedo * ao;
+        float sss_offset = 65.0 / 255.0;
+        outSSS = inSpecular.b < sss_offset ? 0.0 : inSpecular.b - sss_offset;
+        outSSC = inAlbedo;
+        // Bake Ambient Occclusion
+        albedo = inAlbedo * inNormal.b;
+        // Reflectivity
         outSpecular = inSpecular.g;
         metallic = 0.0;
     } else if (is_metal > 254) {
-        // albedo is F0
+        // Albedo is F0
         albedo = inAlbedo;
         metallic = 1.0;
     } else {
         color n = inCustomMetalN, k = inCustomMetalK;
         // xd
-        if (is_metal == 230) {      // iron
+        if (is_metal == 230) {      // Iron
             n = color(2.9114, 2.9497, 2.5845);    k = color(3.0893, 2.9318, 2.7670); }
-        else if (is_metal == 231) { // gold
+        else if (is_metal == 231) { // Gold
             n = color(0.18299, 0.42108, 1.3734);  k = color(3.4242, 2.3459, 1.7704); }
-        else if (is_metal == 232) { // aluminium
+        else if (is_metal == 232) { // Aluminium
             n = color(1.3456, 0.96521, 0.61722);  k = color(7.4746, 6.3995, 5.3031); }
-        else if (is_metal == 233) { // chrome
+        else if (is_metal == 233) { // Chrome
             n = color(3.1071, 3.1812, 2.3230);    k = color(3.3314, 3.3291, 3.1350); }
-        else if (is_metal == 234) { // copper
+        else if (is_metal == 234) { // Copper
             n = color(0.27105, 0.67693, 1.3164);  k = color(3.6092, 2.6248, 2.2921); }
-        else if (is_metal == 235) { // lead
+        else if (is_metal == 235) { // Lead
             n = color(1.9100, 1.8300, 1.4400);    k = color(3.5100, 3.4000, 3.1800); }
-        else if (is_metal == 236) { // platinum
+        else if (is_metal == 236) { // Platinum
             n = color(2.3757, 2.0847, 1.8453);    k = color(4.2655, 3.7153, 3.1365); }
-        else if (is_metal == 237) { // silver
+        else if (is_metal == 237) { // Silver
             n = color(0.15943, 0.14512, 0.13547); k = color(3.9291, 3.1900, 2.3808); }
 
         F0 = f0(n, k);
+        // Mix factor pulled out of thin air
         albedo = mix(inAlbedo, F0, 0.5);
         metallic = 1.0;
     }
 
-    // Roughness (converted from perceptual smoothness)
-    float roughness = pow(1.0 - inSpecular.r, 2.0);
-
-    //////////////////////////////////////// Normal
-
-    //////////////////////////////////////// Output
     outAlbedo = albedo;
     outAlpha = inAlbedo_a;
-    outEmission = emiss;
+    outEmission = inSpecular_a < 255 ? inSpecular_a : 0.0;
 
     outMetallic = metallic;
-    outRoughness = roughness;
+    // Roughness (convert from perceptual smoothness)
+    outRoughness = pow(1.0 - inSpecular.r, 2.0);
+
     outNormal = reconstruct_normal(inNormal.r, inNormal.g);
     outHeightmap = inNormal_a;
 }
