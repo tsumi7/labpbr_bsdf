@@ -113,5 +113,5 @@ shader labpbr_to_principled_bsdf(
     outEmissionStrength = inSpecular_a < 1.0 ? (inSpecular_a / (254.0 / 255.0)) : 0.0;
 
     outNormal = reconstruct_normal(inNormal.r, inNormal.g);
-    outHeightmap = inNormal_a;
+    outHeightmap = mix(0.75, 1.0, inNormal_a);
 }
