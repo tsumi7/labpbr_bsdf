@@ -12,7 +12,7 @@ Blender OSL Shader for connecting LabPBR inputs to Principled BSDF. It's not per
 
 ## Example Render
 
-Gold Ore rendered using AVPBR and 128x subdivision on a cube mesh.
+Gold Ore from the [AVPBR](https://modrinth.com/resourcepack/avpbr-retextured) resource pack rendered a 128x subdivision on a cube mesh.
 
 https://github.com/tsumi666/labpbr_bsdf/assets/90137856/16891ba0-f177-416c-81e8-b455bd425940
 
