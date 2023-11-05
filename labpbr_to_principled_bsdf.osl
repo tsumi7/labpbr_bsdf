@@ -60,7 +60,7 @@ shader labpbr_to_principled_bsdf(
 
     if (is_metal < 230) {
         float sss_offset = 65.0 / 255.0;
-        outSSS = inSpecular.b < sss_offset ? 0.0 : inSpecular.b - sss_offset;
+        outSSS = inSpecular.b < sss_offset ? 0.0 : (inSpecular.b - sss_offset) / (1 - sss_offset);
         outSSC = inAlbedo;
         // Bake Ambient Occclusion
         albedo = inAlbedo * inNormal.b;
@@ -95,8 +95,7 @@ shader labpbr_to_principled_bsdf(
             n = color(0.15943, 0.14512, 0.13547); k = color(3.9291, 3.1900, 2.3808); }
 
         F0 = f0(n, k);
-        // Mix factor pulled out of thin air
-        albedo = mix(F0, inAlbedo, 0.5);
+        albedo = mix(F0, inAlbedo, inMetalMixFactor);
         metallic = 1.0;
     }
 
@@ -111,7 +110,7 @@ shader labpbr_to_principled_bsdf(
         outAlpha = inAlbedo_a;
 
     outEmission = inAlbedo;
-    outEmissionStrength = inSpecular_a < 1.0 ? inSpecular_a : 0.0;
+    outEmissionStrength = inSpecular_a < 1.0 ? (inSpecular_a / (254.0 / 255.0)) : 0.0;
 
     outNormal = reconstruct_normal(inNormal.r, inNormal.g);
     outHeightmap = inNormal_a;
